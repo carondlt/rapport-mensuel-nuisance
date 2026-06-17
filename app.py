@@ -9,7 +9,7 @@ st.set_page_config(page_title="Rapport Nuisances - Maulini", layout="wide")
 # CSS pour éliminer le blanc et maximiser l'impact visuel
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap');
     
     .block-container {
         padding-top: 1rem !important;
@@ -59,7 +59,7 @@ if 'nuisances_db' not in st.session_state:
             "Date": datetime.date(2026, 6, 15), 
             "Début": "08:30", 
             "Fin": "10:15", 
-            "Intensité": "🔴 Critique", 
+            "Intensité": "🔴 Très fort", 
             "Nature": "BRUIT : CHOCS", 
             "Description": "Marteau-piqueur dalle adjacente."
         },
@@ -75,19 +75,19 @@ if 'nuisances_db' not in st.session_state:
             "Date": datetime.date(2026, 6, 16), 
             "Début": "09:00", 
             "Fin": "11:30", 
-            "Intensité": "🔴 Critique", 
+            "Intensité": "🔴 Très fort", 
             "Nature": "VIBRATIONS", 
             "Description": "Tremblements continus dans le sol."
         }
     ])
 
-# 2. Section d'édition (Repliable)
+# 2. Section d'édition dynamique
 with st.expander("📝 Ajouter / Modifier des événements", expanded=False):
     config_colonnes = {
         "Date": st.column_config.DateColumn("Date", required=True),
         "Début": st.column_config.TextColumn("Début (HH:MM)", required=True),
         "Fin": st.column_config.TextColumn("Fin (HH:MM)", required=True),
-        "Intensité": st.column_config.SelectboxColumn("Intensité", options=["🔴 Critique", "🟠 Fort", "🟡 Modéré"], required=True),
+        "Intensité": st.column_config.SelectboxColumn("Intensité", options=["🔴 Très fort", "🟠 Fort", "🟡 Modéré"], required=True),
         "Nature": st.column_config.SelectboxColumn("Nature", options=["BRUIT : CHOCS", "BRUIT : PERCEMENT", "BRUIT : CONTINU", "VIBRATIONS", "POUSSIÈRE", "ACCÈS ENTRAVÉ", "COUPURE SYNCHRO"], required=True),
         "Description": st.column_config.TextColumn("Description")
     }
@@ -99,9 +99,10 @@ with st.expander("📝 Ajouter / Modifier des événements", expanded=False):
     )
     st.session_state.nuisances_db = df_edite
 
-# 3. Traitement robuste et Rendu Graphique
+# 3. Traitement et Rendu Graphique
 if not df_edite.empty:
     try:
+        # Nettoyage strict
         df_events = df_edite.copy()
         df_events = df_events.dropna(subset=['Date', 'Début', 'Fin', 'Intensité', 'Nature'])
         
@@ -123,20 +124,20 @@ if not df_edite.empty:
             df_events = df_events.sort_values('Start').reset_index(drop=True)
             
         if not df_events.empty:
-            # Comptage pour enrichir la légende
-            count_critique = len(df_events[df_events['Intensité'] == "🔴 Critique"])
+            # DÉCOMPTE DYNAMIQUE POUR LA LÉGENDE INTERACTIVE
+            count_tres_fort = len(df_events[df_events['Intensité'] == "🔴 Très fort"])
             count_fort = len(df_events[df_events['Intensité'] == "🟠 Fort"])
             count_modere = len(df_events[df_events['Intensité'] == "🟡 Modéré"])
             
-            # Algorithme de complétion des plages de calme (Gris neutre pour faire claquer les couleurs)
+            # Algorithme de complétion des plages vides avec du Vert Pétant
             chronologie_complete = []
             for i in range(len(df_events)):
                 if i > 0 and df_events.loc[i, 'Start'] > df_events.loc[i-1, 'Finish']:
                     chronologie_complete.append({
                         "Start": df_events.loc[i-1, 'Finish'],
                         "Finish": df_events.loc[i, 'Start'],
-                        "Intensité": "⚪ Calme (Jouissance normale)",
-                        "Nature": "Période calme"
+                        "Intensité": "🟢 Jouissance normale",
+                        "Nature": "Normal"
                     })
                 chronologie_complete.append({
                     "Start": df_events.loc[i, 'Start'],
@@ -148,32 +149,25 @@ if not df_edite.empty:
             df_plot = pd.DataFrame(chronologie_complete)
             df_plot['Axe'] = "Impact"
             
-            # PALETTE ULTRA PÉTANTE ET SATURÉE
-            couleurs_map = {
-                "🔴 Critique": "#FF0000",                  # Rouge Pur Flash
-                "🟠 Fort": "#FF6600",                      # Orange Vif Éclatant
-                "🟡 Modéré": "#FFD700",                    # Jaune Or Intense
-                "⚪ Calme (Jouissance normale)": "#E5E5E5" # Gris neutre très clair
-            }
-
-            # Libellés de légende enrichis
-            lbl_critique = f"🔴 Critique ({count_critique})"
+            # Libellés enrichis pour la légende Plotly
+            lbl_tres_fort = f"🔴 Très fort ({count_tres_fort})"
             lbl_fort = f"🟠 Fort ({count_fort})"
             lbl_modere = f"🟡 Modéré ({count_modere})"
-            lbl_calme = "⚪ Calme"
+            lbl_vert = "🟢 Jouissance normale"
 
             df_plot['Légende'] = df_plot['Intensité'].map({
-                "🔴 Critique": lbl_critique,
+                "🔴 Très fort": lbl_tres_fort,
                 "🟠 Fort": lbl_fort,
                 "🟡 Modéré": lbl_modere,
-                "⚪ Calme (Jouissance normale)": lbl_calme
+                "🟢 Jouissance normale": lbl_vert
             })
 
+            # PALETTE DE COULEURS FLASHY ET CONTRASTÉES
             couleurs_legend_map = {
-                lbl_critique: "#FF0000",
-                lbl_fort: "#FF6600",
-                lbl_modere: "#FFD700",
-                lbl_calme: "#E5E5E5"
+                lbl_tres_fort: "#FF0000",  # Rouge Pur Flash
+                lbl_fort: "#FF6600",       # Orange Éclatant
+                lbl_modere: "#FFD700",     # Jaune Pétant
+                lbl_vert: "#2ECC71"        # Vert Émeraude Vif (Reste du temps)
             }
 
             fig = px.timeline(
@@ -185,7 +179,7 @@ if not df_edite.empty:
                 color_discrete_map=couleurs_legend_map,
                 hover_name="Nature",
                 custom_data=['Start', 'Finish'],
-                category_orders={"Légende": [lbl_calme, lbl_modere, lbl_fort, lbl_critique]}
+                category_orders={"Légende": [lbl_vert, lbl_modere, lbl_fort, lbl_tres_fort]}
             )
             
             fig.update_layout(
@@ -202,15 +196,17 @@ if not df_edite.empty:
                     x=0,
                     title_text=""
                 ),
-                font=dict(family="Inter, sans-serif", size=12, color="#000000") # Texte plus gros et noir
+                font=dict(family="Inter, sans-serif", size=12, color="#000000")
             )
             
+            # CONFIGURATION DE L'AXE DES ABSCISSES JOUR PAR JOUR (Toutes les 24h)
             fig.update_xaxes(
                 showgrid=True,
-                gridcolor="#EAEAEA",  # Grille plus visible
+                gridcolor="#EAEAEA",
                 showline=True,
                 linewidth=1.5,
                 linecolor='#000000',
+                dtick=86400000,  # Force un repère strict toutes les 24 heures (en millisecondes)
                 tickformat="%d %b\n%H:%M",
                 title_text=""
             )
@@ -218,7 +214,7 @@ if not df_edite.empty:
             fig.update_yaxes(showgrid=False, showticklabels=False, title_text="")
             
             fig.update_traces(
-                width=0.6, # Barres un peu plus épaisses pour mieux voir les couleurs
+                width=0.6, 
                 marker=dict(line=dict(color="#FFFFFF", width=1)),
                 hovertemplate="<b>%{hovertext}</b><br>%{customdata[0]|%H:%M} à %{customdata[1]|%H:%M}<extra></extra>"
             )
@@ -253,14 +249,14 @@ if not df_edite.empty:
                 }
             )
             
-            # BLOC LÉGENDE FIXE ET ULTRA LISIBLE EN DESSOUS
+            # BLOC LÉGENDE INTERACTIF ET SYNCHRONISÉ
             st.markdown(f"""
                 <div class="custom-legend">
-                    <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">📋 Légende détaillée des seuils d'impact</div>
-                    <div class="legend-item"><span style="color: #FF0000; font-size: 16px;">■</span> <b style="color: #FF0000;">Niveau Critique ({count_critique} Événement(s)) :</b> Seuils réglementaires ou contractuels franchis. Travaux lourds (chocs, marteau-piqueur, perforations lourdes) empêchant toute activité normale.</div>
-                    <div class="legend-item"><span style="color: #FF6600; font-size: 16px;">■</span> <b style="color: #FF6600;">Niveau Fort ({count_fort} Événement(s)) :</b> Nuisance perturbante continue (vibrations régulières, poussière importante, livraisons bloquant temporairement les accès).</div>
-                    <div class="legend-item"><span style="color: #FFD700; font-size: 16px;">■</span> <b style="color: #FFD700;">Niveau Modéré ({count_modere} Événement(s)) :</b> Bruits de chantier de fond ou opérations courantes (manutention légère, passages réguliers).</div>
-                    <div class="legend-item"><span style="color: #888888; font-size: 16px;">■</span> <b>Calme / Jouissance Normale :</b> Aucune nuisance reportée, cadre de vie conforme aux exigences d'occupation.</div>
+                    <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">📋 Légende dynamique des seuils d'impact</div>
+                    <div class="legend-item"><span style="color: #FF0000; font-size: 16px;">■</span> <b style="color: #FF0000;">Niveau Très fort ({count_tres_fort} événement(s)) :</b> Seuils réglementaires franchis. Travaux lourds bloquant toute activité.</div>
+                    <div class="legend-item"><span style="color: #FF6600; font-size: 16px;">■</span> <b style="color: #FF6600;">Niveau Fort ({count_fort} événement(s)) :</b> Nuisance perturbante continue (vibrations, poussière, accès limités).</div>
+                    <div class="legend-item"><span style="color: #FFD700; font-size: 16px;">■</span> <b style="color: #FFD700;">Niveau Modéré ({count_modere} événement(s)) :</b> Bruits de chantier de fond ou opérations courantes légères.</div>
+                    <div class="legend-item"><span style="color: #2ECC71; font-size: 16px;">■</span> <b style="color: #2ECC71;">Jouissance Normale / Calme :</b> Aucune nuisance reportée. Cadre de vie conforme.</div>
                 </div>
             """, unsafe_allow_html=True)
             
