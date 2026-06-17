@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+import datetime
 
 # Configuration de la page
 st.set_page_config(page_title="Suivi des Nuisances Chantier", layout="wide")
@@ -9,12 +9,33 @@ st.set_page_config(page_title="Suivi des Nuisances Chantier", layout="wide")
 st.title("📊 Suivi Interactif des Nuisances de Chantier")
 st.write("Saisis ou modifie les nuisances directement dans le tableau. La frise visuelle s'actualise toute seule.")
 
-# 1. Base de données initiale (Session State pour garder les données en mémoire)
+# 1. Base de données initiale avec de vrais objets date pour éviter le bug de type
 if 'nuisances_db' not in st.session_state:
     st.session_state.nuisances_db = pd.DataFrame([
-        {"Date": "2026-06-15", "Début": "08:30", "Fin": "10:15", "Intensité": "🔴 Rouge (Critique)", "Étiquette": "BRUIT : CHOCS", "Description": "Marteau-piqueur dalle adjacente. Réunions impossibles."},
-        {"Date": "2026-06-15", "Début": "10:15", "Fin": "12:00", "Intensité": "🟡 Jaune (Modéré)", "Étiquette": "POUSSIÈRE", "Description": "Infiltration sous la porte d'entrée."},
-        {"Date": "2026-06-16", "Début": "14:00", "Fin": "16:15", "Intensité": "🟠 Orange (Fort)", "Étiquette": "VIBRATIONS", "Description": "Tremblements continus dans le sol, fatigue nerveuse."}
+        {
+            "Date": datetime.date(2026, 6, 15), 
+            "Début": "08:30", 
+            "Fin": "10:15", 
+            "Intensité": "🔴 Rouge (Critique)", 
+            "Étiquette": "BRUIT : CHOCS", 
+            "Description": "Marteau-piqueur dalle adjacente. Réunions impossibles."
+        },
+        {
+            "Date": datetime.date(2026, 6, 15), 
+            "Début": "10:15", 
+            "Fin": "12:00", 
+            "Intensité": "🟡 Jaune (Modéré)", 
+            "Étiquette": "POUSSIÈRE", 
+            "Description": "Infiltration sous la porte d'entrée."
+        },
+        {
+            "Date": datetime.date(2026, 6, 16), 
+            "Début": "14:00", 
+            "Fin": "16:15", 
+            "Intensité": "🟠 Orange (Fort)", 
+            "Étiquette": "VIBRATIONS", 
+            "Description": "Tremblements continus dans le sol, fatigue nerveuse."
+        }
     ])
 
 # 2. Interface de saisie interactive (Tableau éditable)
