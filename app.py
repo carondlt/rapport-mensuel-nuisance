@@ -6,8 +6,8 @@ import datetime
 # Configuration de la page
 st.set_page_config(page_title="Frise Chronologique des Nuisances", layout="wide")
 
-st.title("⏳ Frise Chronologique Auto-Générée (Calme vs Crises)")
-st.write("Note uniquement les événements perturbateurs. Les périodes de calme (Vert) se calculent et s'affichent automatiquement entre tes signalements.")
+st.title("⏳ Frise Chronologique Historique des Nuisances")
+st.write("Note uniquement les événements perturbateurs. Les périodes de calme (Vert) se calculent et s'affichent automatiquement.")
 
 # 1. Base de données initiale (uniquement les points critiques)
 if 'nuisances_db' not in st.session_state:
@@ -38,7 +38,7 @@ if 'nuisances_db' not in st.session_state:
         }
     ])
 
-# 2. Interface de saisie (Tu ne saisis que les crises ici)
+# 2. Interface de saisie
 st.subheader("📝 Registre des événements critiques")
 config_colonnes = {
     "Date": st.column_config.DateColumn("Date", required=True),
@@ -57,20 +57,17 @@ df_edite = st.data_editor(
 )
 st.session_state.nuisances_db = df_edite
 
-# 3. Algorithme de génération des plages de calme (Vert)
+# 3. Algorithme et Design Épuré de la Frise
 if not df_edite.empty:
     try:
         df_events = df_edite.copy()
         df_events['Start'] = pd.to_datetime(df_events['Date'].astype(str) + ' ' + df_events['Début'])
         df_events['Finish'] = pd.to_datetime(df_events['Date'].astype(str) + ' ' + df_events['Fin'])
         
-        # Tri indispensable pour calculer les intervalles
         df_events = df_events.sort_values('Start').reset_index(drop=True)
-        
         chronologie_complete = []
         
         for i in range(len(df_events)):
-            # S'il y a un espace de temps libre entre la fin de l'événement précédent et le début du suivant
             if i > 0 and df_events.loc[i, 'Start'] > df_events.loc[i-1, 'Finish']:
                 chronologie_complete.append({
                     "Date": df_events.loc[i-1, 'Date'],
@@ -78,10 +75,9 @@ if not df_edite.empty:
                     "Finish": df_events.loc[i, 'Start'],
                     "Intensité": "🟢 Vert (Calme / Normal)",
                     "Étiquette": "RÀS",
-                    "Description": "Aucune nuisance – Jouissance normale du logement."
+                    "Description": "Aucune nuisance constatée."
                 })
             
-            # Ajouter l'événement critique saisi par l'utilisateur
             chronologie_complete.append({
                 "Date": df_events.loc[i, 'Date'],
                 "Start": df_events.loc[i, 'Start'],
@@ -94,15 +90,13 @@ if not df_edite.empty:
         df_plot = pd.DataFrame(chronologie_complete)
         df_plot['Ligne Unique'] = "Frise Historique"
         
-        # Palette de couleurs bien tranchée
         couleurs_map = {
             "🔴 Rouge (Critique)": "#EF553B",
-            "🟠 Orange (Fort)": "#EF9A3B",
-            "🟡 Jaune (Modéré)": "#FECB52",
-            "🟢 Vert (Calme / Normal)": "#00CC96"  # Un beau vert d'autorisation / calme
+            "🟠 Orange (Fort)": "#FF9933",
+            "🟡 Jaune (Modéré)": "#FCD116",
+            "🟢 Vert (Calme / Normal)": "#2ECC71"
         }
 
-        # Création de la frise linéaire
         fig = px.timeline(
             df_plot, 
             x_start="Start", 
@@ -112,25 +106,61 @@ if not df_edite.empty:
             text="Étiquette",
             hover_name="Étiquette",
             hover_data={"Date": True, "Intensité": False, "Ligne Unique": False, "Description": True},
-            color_discrete_map=couleurs_map,
-            title="🎯 Impact Réel des Travaux sur le Temps de Vie"
+            color_discrete_map=couleurs_map
         )
         
+        # Calcul des bornes de temps pour ajouter une marge propre à droite pour la flèche
+        temps_min = df_plot['Start'].min()
+        temps_max = df_plot['Finish'].max()
+        delta_total = temps_max - temps_min
+        temps_marge_droite = temps_max + (delta_total * 0.03) # +3% de marge de ligne
+
+        # Personnalisation esthétique "Frise d'Histoire"
         fig.update_layout(
-            xaxis_title="Chronologie continue",
-            yaxis_title="",
+            plot_bgcolor="white",  # Fond blanc pur pour faire ressortir la frise
+            paper_bgcolor="white",
+            height=250,
+            margin=dict(l=10, r=40, t=20, b=60),
             showlegend=True,
-            legend_title="État du Logement",
-            height=280
+            legend_title_text="Statut du Logement",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.6, xanchor="center", x=0.5)
         )
         
-        fig.update_yaxes(showticklabels=False)
-        fig.update_traces(textposition="inside", insidetextanchor="middle")
+        # Axe X : Une belle ligne droite continue noire
+        fig.update_xaxes(
+            range=[temps_min, temps_marge_droite],
+            showgrid=False,
+            showline=True,
+            linewidth=3,
+            linecolor='#2C3E50',
+            title_text=""
+        )
         
-        st.subheader("📈 Rendu Visuel de la Ligne du Temps")
+        # Supprimer l'axe Y pour ne garder que le ruban de l'histoire
+        fig.update_yaxes(showgrid=False, showticklabels=False, title_text="")
+        
+        # Ajustement esthétique des blocs colorés (séparateurs blancs fins)
+        fig.update_traces(
+            textposition="inside", 
+            insidetextanchor="middle",
+            marker=dict(line=dict(color="white", width=2))
+        )
+        
+        # L'élément clé : Ajout de la flèche de chronologie au bout de la ligne
+        fig.add_annotation(
+            x=temps_marge_droite,
+            y="Frise Historique",
+            text="➤",
+            showarrow=False,
+            font=dict(size=20, color="#2C3E50"),
+            xanchor="center",
+            yanchor="middle"
+        )
+        
+        st.subheader("📈 Rendu de la Frise Visuelle")
         st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
-        st.error("Vérifie bien que toutes les cases Date, Début (HH:MM) et Fin (HH:MM) soient remplies.")
+        st.error("Vérifie bien le format de remplissage des dates et heures.")
 else:
     st.warning("Ajoute au moins une nuisance pour voir la frise.")
