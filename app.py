@@ -3,17 +3,33 @@ import pandas as pd
 import plotly.express as px
 import datetime
 
-# Configuration de la page
-st.set_page_config(page_title="Frise Chronologique Premium", layout="wide")
+# Configuration de la page pour un rendu moderne
+st.set_page_config(page_title="Rapport de Nuisances", layout="wide")
 
+# CSS personnalisé pour injecter un style épuré et pro
 st.markdown("""
     <style>
-    .main-title { font-size: 28px; font-weight: 700; color: #2C3E50; margin-bottom: 20px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    html, body, [data-testid="stAppViewContainer"] {
+        font-family: 'Inter', sans-serif;
+        background-color: #FAFAFA;
+    }
+    .main-header {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1A1A1A;
+        margin-bottom: 5px;
+        letter-spacing: -0.5px;
+    }
+    .sub-header {
+        font-size: 14px;
+        color: #666666;
+        margin-bottom: 30px;
+    }
     </style>
-    <div class="main-title">⏳ Chronologie Historique des Nuisances de Voisinage</div>
+    <div class="main-header">Chronologie d'Impact Environnemental</div>
+    <div class="sub-header">Registre d'occupation et relevé des nuisances de chantier</div>
 """, unsafe_allow_html=True)
-
-st.write("Saisis uniquement les événements critiques. Le système génère une frise épurée style infographie.")
 
 # 1. Base de données initiale
 if 'nuisances_db' not in st.session_state:
@@ -22,7 +38,7 @@ if 'nuisances_db' not in st.session_state:
             "Date": datetime.date(2026, 6, 15), 
             "Début": "08:30", 
             "Fin": "10:15", 
-            "Intensité": "🔴 Rouge (Critique)", 
+            "Intensité": "🔴 Critique", 
             "Étiquette": "BRUIT : CHOCS", 
             "Description": "Marteau-piqueur dalle adjacente."
         },
@@ -30,7 +46,7 @@ if 'nuisances_db' not in st.session_state:
             "Date": datetime.date(2026, 6, 15), 
             "Début": "14:00", 
             "Fin": "15:30", 
-            "Intensité": "🟠 Orange (Fort)", 
+            "Intensité": "🟠 Fort", 
             "Étiquette": "ACCÈS ENTRAVÉ", 
             "Description": "Ascenseur bloqué par les livraisons."
         },
@@ -38,32 +54,31 @@ if 'nuisances_db' not in st.session_state:
             "Date": datetime.date(2026, 6, 16), 
             "Début": "09:00", 
             "Fin": "11:30", 
-            "Intensité": "🔴 Rouge (Critique)", 
+            "Intensité": "🔴 Critique", 
             "Étiquette": "VIBRATIONS", 
             "Description": "Tremblements continus dans le sol."
         }
     ])
 
-# 2. Interface de saisie
-st.subheader("📝 Registre des événements")
-config_colonnes = {
-    "Date": st.column_config.DateColumn("Date", required=True),
-    "Début": st.column_config.TextColumn("Début (HH:MM)", required=True),
-    "Fin": st.column_config.TextColumn("Fin (HH:MM)", required=True),
-    "Intensité": st.column_config.SelectboxColumn("Intensité", options=["🔴 Rouge (Critique)", "🟠 Orange (Fort)", "🟡 Jaune (Modéré)"], required=True),
-    "Étiquette": st.column_config.SelectboxColumn("Étiquette", options=["BRUIT : CHOCS", "BRUIT : PERCEMENT", "BRUIT : CONTINU", "VIBRATIONS", "POUSSIÈRE", "ACCÈS ENTRAVÉ", "COUPURE SYNCHRO"], required=True),
-    "Description": st.column_config.TextColumn("Description détaillée")
-}
+# 2. Section de saisie (Discrète en bas ou repliable)
+with st.expander("📝 Saisir ou modifier un événement critique", expanded=False):
+    config_colonnes = {
+        "Date": st.column_config.DateColumn("Date", required=True),
+        "Début": st.column_config.TextColumn("Début (HH:MM)", required=True),
+        "Fin": st.column_config.TextColumn("Fin (HH:MM)", required=True),
+        "Intensité": st.column_config.SelectboxColumn("Intensité", options=["🔴 Critique", "🟠 Fort", "🟡 Modéré"], required=True),
+        "Étiquette": st.column_config.SelectboxColumn("Nature", options=["BRUIT : CHOCS", "BRUIT : PERCEMENT", "BRUIT : CONTINU", "VIBRATIONS", "POUSSIÈRE", "ACCÈS ENTRAVÉ", "COUPURE SYNCHRO"], required=True),
+        "Description": st.column_config.TextColumn("Description")
+    }
+    df_edite = st.data_editor(
+        st.session_state.nuisances_db, 
+        column_config=config_colonnes,
+        num_rows="dynamic", 
+        use_container_width=True
+    )
+    st.session_state.nuisances_db = df_edite
 
-df_edite = st.data_editor(
-    st.session_state.nuisances_db, 
-    column_config=config_colonnes,
-    num_rows="dynamic", 
-    use_container_width=True
-)
-st.session_state.nuisances_db = df_edite
-
-# 3. Génération du Design Infographique
+# 3. Traitement et Rendu Visuel
 if not df_edite.empty:
     try:
         df_events = df_edite.copy()
@@ -71,15 +86,15 @@ if not df_edite.empty:
         df_events['Finish'] = pd.to_datetime(df_events['Date'].astype(str) + ' ' + df_events['Fin'])
         df_events = df_events.sort_values('Start').reset_index(drop=True)
         
+        # Algorithme de complétion des plages vertes
         chronologie_complete = []
-        
         for i in range(len(df_events)):
             if i > 0 and df_events.loc[i, 'Start'] > df_events.loc[i-1, 'Finish']:
                 chronologie_complete.append({
                     "Start": df_events.loc[i-1, 'Finish'],
                     "Finish": df_events.loc[i, 'Start'],
-                    "Intensité": "🟢 Calme normal",
-                    "Étiquette": "RÀS"
+                    "Intensité": "🟢 Jouissance normale",
+                    "Étiquette": "Normal"
                 })
             chronologie_complete.append({
                 "Start": df_events.loc[i, 'Start'],
@@ -89,77 +104,81 @@ if not df_edite.empty:
             })
             
         df_plot = pd.DataFrame(chronologie_complete)
-        df_plot['Ligne'] = "Frise"
+        df_plot['Axe'] = "Chronologie"
         
-        # Palette de couleurs "Architectural & Muted" (plus douce et élégante)
+        # Dashboard KPIs en haut de page pour le look "pro"
+        total_crises = len(df_events)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Alertes Critiques", f"{total_crises} événements")
+        col2.metric("Statut Actuel", "🟢 Calme" if datetime.datetime.now() > df_events['Finish'].max() else "⚠️ Nuisance en cours")
+        col3.metric("Dernier relevé", df_events['Date'].max().strftime("%d %B %Y"))
+
+        # Palette de couleurs "Luxury / Architect" (Finitions mates et contrastées)
         couleurs_map = {
-            "🔴 Rouge (Critique)": "#CD5C5C",      # Rouge terre cuite doux
-            "🟠 Orange (Fort)": "#E6A15C",         # Ambre doux
-            "🟡 Jaune (Modéré)": "#F3D266",        # Or mat
-            "🟢 Calme normal": "#F2F5F3"           # Fond lin/off-white ultra-pro
+            "🔴 Critique": "#D9534F",          # Rouge brique mat
+            "🟠 Fort": "#F0AD4E",              # Ambre doux
+            "🟡 Modéré": "#F0DE4C",            # Jaune discret
+            "🟢 Jouissance normale": "#E8F5E9"  # Vert d'eau très pâle (élégant, non agressif)
         }
 
+        # Création de la frise épurée
         fig = px.timeline(
             df_plot, 
             x_start="Start", 
             x_end="Finish", 
-            y="Ligne", 
+            y="Axe", 
             color="Intensité",
-            color_discrete_map=couleurs_map
+            color_discrete_map=couleurs_map,
+            hover_name="Étiquette",
+            category_orders={"Intensité": ["🟢 Jouissance normale", "🟡 Modéré", "🟠 Fort", "🔴 Critique"]}
         )
         
-        # Configuration de la mise en page de base
+        # Design haut de gamme de la Timeline
         fig.update_layout(
             plot_bgcolor="white",
             paper_bgcolor="white",
-            height=380,  # Plus grand pour laisser de la place aux bulles historiques
-            margin=dict(l=20, r=40, t=180, b=40), # Énorme marge en haut pour les bulles
-            showlegend=False
+            height=200,
+            margin=dict(l=10, r=20, t=10, b=60),
+            
+            # Légende horizontale parfaitement intégrée en haut
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.2,
+                xanchor="left",
+                x=0,
+                title_text=""
+            ),
+            font=dict(family="Inter, sans-serif", size=12, color="#333333")
         )
         
-        fig.update_xaxes(showgrid=False, showline=True, linewidth=2, linecolor='#BDC3C7', title_text="")
+        # Axe X chirurgical pour afficher les dates exactes et les heures sans encombrement
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor="#F0F0F0",  # Grille très fine pour caler le regard sur les heures exactes
+            showline=True,
+            linewidth=1.5,
+            linecolor='#1A1A1A',
+            tickformat="%a %d %b\n%H:%M",  # Exemple : "Lun 15 Juin (nouvelle ligne) 08:30"
+            ticklabelmode="instant",
+            title_text=""
+        )
+        
+        # Axe Y masqué pour ne garder que le bandeau temporel
         fig.update_yaxes(showgrid=False, showticklabels=False, title_text="")
-        fig.update_traces(width=0.15, marker=dict(line=dict(color="#FFFFFF", width=1))) # Ligne fine et distinguée
         
-        # AJOUT DES BULLES DE TEXTE STYLE HISTOIRE (Uniquement pour les crises)
-        couleurs_hex = {
-            "🔴 Rouge (Critique)": "#CD5C5C",
-            "🟠 Orange (Fort)": "#E6A15C",
-            "🟡 Jaune (Modéré)": "#F3D266"
-        }
+        # Format des barres (hauteur fixe, sans bordures agressives)
+        fig.update_traces(
+            width=0.4, 
+            marker=dict(line=dict(color="#FFFFFF", width=1.5)),
+            hovertemplate="<b>%{hovertext}</b><br>Début: %{x|%H:%M}<br>Fin: %{customdata[0]|%H:%M}<extra></extra>"
+        )
         
-        hauteurs_stagger = [-50, -110, -170] # Différentes hauteurs pour éviter les collisions de texte
-        
-        idx_crise = 0
-        for _, row in df_events.iterrows():
-            # Calcul du milieu de l'événement pour planter la flèche
-            milieu = row['Start'] + (row['Finish'] - row['Start']) / 2
-            couleur_bulle = couleurs_hex.get(row['Intensité'], "#2C3E50")
-            ay_val = hauteurs_stagger[idx_crise % len(hauteurs_stagger)]
-            
-            fig.add_annotation(
-                x=milieu,
-                y="Frise",
-                text=f"<b>{row['Étiquette']}</b><br><span style='font-size:10px; color:#7F8C8D;'>{row['Début']} - {row['Fin']}</span>",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=1.5,
-                arrowcolor="#BDC3C7",
-                ax=0,
-                ay=ay_val,
-                bordercolor=couleur_bulle,
-                borderwidth=2,
-                borderpad=6,
-                bgcolor="white",
-                font=dict(size=11, color="#2C3E50", family="Arial")
-            )
-            idx_crise += 1
-
-        st.subheader("📈 Rendu Infographique")
-        st.plotly_chart(fig, use_container_width=True)
+        st.write("")
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
     except Exception as e:
-        st.error("Vérifie la cohérence des heures saisies (ex: 08:30).")
+        st.error("Une erreur est survenue lors du formatage. Vérifie la cohérence des heures (HH:MM).")
 else:
-    st.warning("Ajoute des données pour dessiner l'infographie.")
+    st.warning("Ajoute des données pour afficher l'infographie.")
