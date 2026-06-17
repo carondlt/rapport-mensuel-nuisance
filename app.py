@@ -9,8 +9,6 @@ st.set_page_config(page_title="Suivi des Nuisances Chantier", layout="wide")
 st.title("📊 Suivi Interactif des Nuisances de Chantier")
 st.write("Saisis ou modifie les nuisances directement dans le tableau. La frise visuelle s'actualise toute seule.")
 
----
-
 # 1. Base de données initiale (Session State pour garder les données en mémoire)
 if 'nuisances_db' not in st.session_state:
     st.session_state.nuisances_db = pd.DataFrame([
@@ -41,8 +39,6 @@ df_edite = st.data_editor(
     use_container_width=True
 )
 st.session_state.nuisances_db = df_edite
-
----
 
 # 3. Traitement des données pour la frise chronologique
 if not df_edite.empty:
