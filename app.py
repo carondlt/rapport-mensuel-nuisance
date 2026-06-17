@@ -4,12 +4,12 @@ import plotly.express as px
 import datetime
 
 # Configuration de la page
-st.set_page_config(page_title="Suivi des Nuisances Chantier", layout="wide")
+st.set_page_config(page_title="Frise Chronologique des Nuisances", layout="wide")
 
-st.title("📊 Suivi Interactif des Nuisances de Chantier")
-st.write("Saisis ou modifie les nuisances directement dans le tableau. La frise visuelle s'actualise toute seule.")
+st.title("⏳ Frise Chronologique Historique des Nuisances")
+st.write("Saisis tes données dans le tableau. Elles s'aligneront automatiquement sur une seule grande ligne du temps continue.")
 
-# 1. Base de données initiale avec de vrais objets date pour éviter le bug de type
+# 1. Base de données initiale
 if 'nuisances_db' not in st.session_state:
     st.session_state.nuisances_db = pd.DataFrame([
         {
@@ -18,7 +18,7 @@ if 'nuisances_db' not in st.session_state:
             "Fin": "10:15", 
             "Intensité": "🔴 Rouge (Critique)", 
             "Étiquette": "BRUIT : CHOCS", 
-            "Description": "Marteau-piqueur dalle adjacente. Réunions impossibles."
+            "Description": "Marteau-piqueur dalle adjacente."
         },
         {
             "Date": datetime.date(2026, 6, 15), 
@@ -29,20 +29,25 @@ if 'nuisances_db' not in st.session_state:
             "Description": "Infiltration sous la porte d'entrée."
         },
         {
-            "Date": datetime.date(2026, 6, 16), 
+            "Date": datetime.date(2026, 6, 15), 
             "Début": "14:00", 
-            "Fin": "16:15", 
+            "Fin": "17:00", 
             "Intensité": "🟠 Orange (Fort)", 
+            "Étiquette": "ACCÈS ENTRAVÉ", 
+            "Description": "Ascenseur bloqué par les livraisons."
+        },
+        {
+            "Date": datetime.date(2026, 6, 16), 
+            "Début": "08:00", 
+            "Fin": "11:30", 
+            "Intensité": "🔴 Rouge (Critique)", 
             "Étiquette": "VIBRATIONS", 
-            "Description": "Tremblements continus dans le sol, fatigue nerveuse."
+            "Description": "Tremblements continus dans le sol."
         }
     ])
 
-# 2. Interface de saisie interactive (Tableau éditable)
+# 2. Interface de saisie
 st.subheader("📝 Registre des nuisances")
-st.info("💡 Tu peux double-cliquer sur une case pour la modifier, ou cliquer sur le '+' en bas du tableau pour ajouter une ligne.")
-
-# Options pour les menus déroulants dans le tableau
 config_colonnes = {
     "Date": st.column_config.DateColumn("Date", required=True),
     "Début": st.column_config.TextColumn("Heure Début (HH:MM)", required=True),
@@ -52,7 +57,6 @@ config_colonnes = {
     "Description": st.column_config.TextColumn("Description détaillée")
 }
 
-# Affichage de l'éditeur
 df_edite = st.data_editor(
     st.session_state.nuisances_db, 
     column_config=config_colonnes,
@@ -61,15 +65,16 @@ df_edite = st.data_editor(
 )
 st.session_state.nuisances_db = df_edite
 
-# 3. Traitement des données pour la frise chronologique
+# 3. Génération de la Frise Historique
 if not df_edite.empty:
     try:
-        # Conversion des heures en format datetime lisible par le graphique
         df_plot = df_edite.copy()
         df_plot['Start'] = pd.to_datetime(df_plot['Date'].astype(str) + ' ' + df_plot['Début'])
         df_plot['Finish'] = pd.to_datetime(df_plot['Date'].astype(str) + ' ' + df_plot['Fin'])
         
-        # Mapping des couleurs pour Plotly
+        # Astuce : on crée une colonne fixe pour forcer l'alignement sur une seule ligne
+        df_plot['Ligne Unique'] = "Chronologie des Nuisances"
+        
         couleurs_map = {
             "🔴 Rouge (Critique)": "#EF553B",
             "🟠 Orange (Fort)": "#EF9A3B",
@@ -77,27 +82,39 @@ if not df_edite.empty:
             "🟢 Vert (Acceptable)": "#636EFA"
         }
 
-        # Génération de la frise (Gantt/Timeline chart)
+        # Création du graphique de type frise linéaire
         fig = px.timeline(
             df_plot, 
             x_start="Start", 
             x_end="Finish", 
-            y="Date", 
+            y="Ligne Unique", 
             color="Intensité",
+            text="Étiquette",  # Affiche l'étiquette directement dans le bloc coloré
             hover_name="Étiquette",
-            hover_data=["Description"],
+            hover_data={"Date": True, "Début": True, "Fin": True, "Description": True, "Ligne Unique": False},
             color_discrete_map=couleurs_map,
-            title="⏳ Frise Chronologique de l'Intensité des Nuisances"
+            title="🎯 Ligne du Temps Continue"
         )
         
-        fig.update_yaxes(autorange="reversed") # Pour avoir les jours les plus récents en haut
-        fig.update_layout(xaxis_title="Heures de la journée", yaxis_title="Date", legend_title="Gravité")
+        # Style pour que ça ressemble à une vraie frise d'histoire
+        fig.update_layout(
+            xaxis_title="Déroulement du Temps (Jours et Heures)",
+            yaxis_title="",
+            showlegend=True,
+            legend_title="Gravité",
+            height=300  # Moins haut pour accentuer l'effet "bandeau/frise"
+        )
         
-        # Affichage du graphique dans Streamlit
-        st.subheader("📈 Rendu de la Frise Visuelle")
+        # Masquer les labels de l'axe Y pour épurer le visuel
+        fig.update_yaxes(showticklabels=False, ticktext=[])
+        
+        # Ajustement du texte à l'intérieur des blocs
+        fig.update_traces(textposition="inside", insidetextanchor="middle")
+        
+        st.subheader("📈 Rendu de la Frise")
         st.plotly_chart(fig, use_container_width=True)
         
     except Exception as e:
-        st.error("Assure-toi de bien remplir les dates et heures au format 'AAAA-MM-JJ' et 'HH:MM'.")
+        st.error("Vérifie le format de tes dates (AAAA-MM-JJ) et heures (HH:MM).")
 else:
-    st.warning("Le tableau est vide. Ajoute des lignes pour générer la frise.")
+    st.warning("Ajoute des lignes pour voir apparaître la frise.")
