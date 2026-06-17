@@ -52,7 +52,7 @@ st.markdown("""
     <div class="sub-header">Générateur de frise d'impact — Document officiel de synthèse</div>
 """, unsafe_allow_html=True)
 
-# 1. Base de données initiale
+# 1. Base de données initiale (entièrement en français)
 if 'nuisances_db' not in st.session_state:
     st.session_state.nuisances_db = pd.DataFrame([
         {
@@ -84,7 +84,7 @@ if 'nuisances_db' not in st.session_state:
 # 2. Section d'édition dynamique
 with st.expander("📝 Ajouter / Modifier des événements", expanded=False):
     config_colonnes = {
-        "Date": st.column_config.DateColumn("Date", required=True),
+        "Date": st.column_config.DateColumn("Date", required=True, format="DD.MM.YYYY"),
         "Début": st.column_config.TextColumn("Début (HH:MM)", required=True),
         "Fin": st.column_config.TextColumn("Fin (HH:MM)", required=True),
         "Intensité": st.column_config.SelectboxColumn("Intensité", options=["🔴 Très fort", "🟠 Fort", "🟡 Modéré"], required=True),
@@ -149,7 +149,7 @@ if not df_edite.empty:
             df_plot = pd.DataFrame(chronologie_complete)
             df_plot['Axe'] = "Impact"
             
-            # Libellés enrichis pour la légende Plotly
+            # Libellés enrichis pour la légende Plotly en français
             lbl_tres_fort = f"🔴 Très fort ({count_tres_fort})"
             lbl_fort = f"🟠 Fort ({count_fort})"
             lbl_modere = f"🟡 Modéré ({count_modere})"
@@ -199,15 +199,15 @@ if not df_edite.empty:
                 font=dict(family="Inter, sans-serif", size=12, color="#000000")
             )
             
-            # CONFIGURATION DE L'AXE DES ABSCISSES JOUR PAR JOUR (Toutes les 24h)
+            # CONFIGURATION DE L'AXE DES ABSCISSES JOUR PAR JOUR EN FRANÇAIS
             fig.update_xaxes(
                 showgrid=True,
                 gridcolor="#EAEAEA",
                 showline=True,
                 linewidth=1.5,
                 linecolor='#000000',
-                dtick=86400000,  # Force un repère strict toutes les 24 heures (en millisecondes)
-                tickformat="%d %b\n%H:%M",
+                dtick=86400000,  # Un repère strict toutes les 24 heures
+                tickformat="%d.%m\n%H:%M",  # Format standard CH/FR numérique (ex: 15.06) pour contourner la langue du serveur
                 title_text=""
             )
             
@@ -237,6 +237,7 @@ if not df_edite.empty:
                 fig, 
                 use_container_width=True, 
                 config={
+                    'locale': 'fr', # Force la langue de l'interface Plotly en français
                     'displayModeBar': True,
                     'displaylogo': False,
                     'toImageButtonOptions': {
@@ -249,7 +250,7 @@ if not df_edite.empty:
                 }
             )
             
-            # BLOC LÉGENDE INTERACTIF ET SYNCHRONISÉ
+            # BLOC LÉGENDE INTERACTIF ET SYNCHRONISÉ EN FRANÇAIS
             st.markdown(f"""
                 <div class="custom-legend">
                     <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">📋 Légende dynamique des seuils d'impact</div>
