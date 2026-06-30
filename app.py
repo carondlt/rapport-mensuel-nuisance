@@ -6,7 +6,7 @@ import datetime
 # Configuration de la page pour un rendu compact et haut de gamme
 st.set_page_config(page_title="Rapport Nuisances - Maulini", layout="wide")
 
-# CSS pour un design épuré, moderne et professionnel (Palette Pastel)
+# CSS pour un design épuré, moderne et professionnel (Palette Pastel Haute Clarté)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&display=swap');
@@ -139,17 +139,15 @@ if not df_edite.empty:
             count_fort = len(df_events[df_events['Intensité'] == "🟠 Fort"])
             count_modere = len(df_events[df_events['Intensité'] == "🟡 Modéré"])
             
-            # Algorithme de complétion continue en Vert Pastel pour le reste du temps
+            # Algorithme de complétion continue en Vert Pastel
             chronologie_complete = []
             
-            # Bornes temporelles globales calées sur les journées encodées (de 07:00 à 18:00)
             min_date = df_events['Start'].min().replace(hour=7, minute=0, second=0)
             max_date = df_events['Finish'].max().replace(hour=18, minute=0, second=0)
             
             current_time = min_date
             
             for i in range(len(df_events)):
-                # Si un espace vide existe avant l'événement, on injecte le vert pâle pastel
                 if df_events.loc[i, 'Start'] > current_time:
                     chronologie_complete.append({
                         "Start": current_time,
@@ -159,7 +157,6 @@ if not df_edite.empty:
                         "Description": "Aucun incident ou nuisance"
                     })
                 
-                # Ajout de l'événement de nuisance actuel
                 chronologie_complete.append({
                     "Start": df_events.loc[i, 'Start'],
                     "Finish": df_events.loc[i, 'Finish'],
@@ -169,7 +166,6 @@ if not df_edite.empty:
                 })
                 current_time = df_events.loc[i, 'Finish']
             
-            # Combler en vert pastel jusqu'à la fin de la dernière amplitude horaire
             if current_time < max_date:
                 chronologie_complete.append({
                     "Start": current_time,
@@ -182,7 +178,6 @@ if not df_edite.empty:
             df_plot = pd.DataFrame(chronologie_complete)
             df_plot['Axe'] = "Impact"
             
-            # Libellés épurés pour la légende
             lbl_tres_fort = f"Niveau Très fort ({count_tres_fort})"
             lbl_fort = f"Niveau Fort ({count_fort})"
             lbl_modere = f"Niveau Modéré ({count_modere})"
@@ -195,12 +190,12 @@ if not df_edite.empty:
                 "🟢 Jouissance normale": lbl_vert
             })
 
-            # Palette exclusive de tons pastels doux et sophistiqués
+            # Palette pastel à haute clarté (couleurs pleines et distinctes)
             couleurs_legend_map = {
-                lbl_tres_fort: "#F2D7D5",  # Rouge bordeaux pastel doux
-                lbl_fort: "#FDEBD0",       # Orange ambre pastel très clair
-                lbl_modere: "#FCF3CF",     # Jaune sablon / crème pastel
-                lbl_vert: "#E2F0D9"        # Vert pâle pastel parfait pour le calme
+                lbl_tres_fort: "#F2D7D5",  
+                lbl_fort: "#FDEBD0",       
+                lbl_modere: "#FCF3CF",     
+                lbl_vert: "#E2F0D9"        
             }
 
             fig = px.timeline(
@@ -233,12 +228,11 @@ if not df_edite.empty:
                 font=dict(family="Inter, sans-serif", size=12, color="#1A1A1A")
             )
             
-            # Configuration fine de l'axe temporel (Frise chronologique fluide)
+            # Nettoyage complet de la grille pour supprimer l'effet "voile"
             fig.update_xaxes(
-                showgrid=True,
-                gridcolor="#F5F5F5",
+                showgrid=False,        # Supprime les grilles de fond verticales
                 showline=True,
-                linewidth=1,
+                linewidth=1.5,
                 linecolor='#1A1A1A',
                 type='date',
                 tickformat="%d %b\n%H:%M",
@@ -248,13 +242,15 @@ if not df_edite.empty:
             
             fig.update_yaxes(showgrid=False, showticklabels=False, title_text="")
             
+            # SUPPRESSION DU FILTRE D'OPACITÉ DE PLOTLY
             fig.update_traces(
-                width=0.5, 
-                marker=dict(line=dict(color="#FFFFFF", width=1.5)), # Délineation blanche discrète
+                width=0.55, 
+                opacity=1.0, # Force les couleurs à être 100% opaques et solides, sans filtre
+                marker=dict(line=dict(color="#FFFFFF", width=2)), # Bordures blanches nettes
                 hovertemplate="<b>%{hovertext}</b><br>⏱ %{customdata[0]|%H:%M} à %{customdata[1]|%H:%M}<br>📝 %{customdata[2]}<extra></extra>"
             )
             
-            # Signature Maulini minimaliste
+            # Signature Maulini
             fig.add_annotation(
                 x=1, y=1.45,
                 xref="paper", yref="paper",
@@ -284,7 +280,7 @@ if not df_edite.empty:
                 }
             )
             
-            # Bloc Légende d'impact statique épuré
+            # Bloc Légende
             st.markdown(f"""
                 <div class="custom-legend">
                     <div class="legend-title">📋 Seuils réglementaires et impacts d'exploitation</div>
