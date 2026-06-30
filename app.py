@@ -190,7 +190,6 @@ if not df_edite.empty:
                 "🟢 Jouissance normale": lbl_vert
             })
 
-            # Palette pastel à haute clarté (couleurs pleines et distinctes)
             couleurs_legend_map = {
                 lbl_tres_fort: "#F2D7D5",  
                 lbl_fort: "#FDEBD0",       
@@ -228,9 +227,9 @@ if not df_edite.empty:
                 font=dict(family="Inter, sans-serif", size=12, color="#1A1A1A")
             )
             
-            # Nettoyage complet de la grille pour supprimer l'effet "voile"
+            # Nettoyage de la grille pour supprimer le voile
             fig.update_xaxes(
-                showgrid=False,        # Supprime les grilles de fond verticales
+                showgrid=False,        
                 showline=True,
                 linewidth=1.5,
                 linecolor='#1A1A1A',
@@ -242,26 +241,22 @@ if not df_edite.empty:
             
             fig.update_yaxes(showgrid=False, showticklabels=False, title_text="")
             
-            # SUPPRESSION DU FILTRE D'OPACITÉ DE PLOTLY
             fig.update_traces(
                 width=0.55, 
-                opacity=1.0, # Force les couleurs à être 100% opaques et solides, sans filtre
-                marker=dict(line=dict(color="#FFFFFF", width=2)), # Bordures blanches nettes
+                opacity=1.0, 
+                marker=dict(line=dict(color="#FFFFFF", width=2)), 
                 hovertemplate="<b>%{hovertext}</b><br>⏱ %{customdata[0]|%H:%M} à %{customdata[1]|%H:%M}<br>📝 %{customdata[2]}<extra></extra>"
             )
             
-            # Signature Maulini
-            fig.add_annotation(
-                x=1, y=1.45,
-                xref="paper", yref="paper",
-                text="<b>MAULINI</b><br><span style='font-size:7.5px; letter-spacing:1.5px; color:#666666;'>MAÎTRE CONSTRUCTEUR</span>",
-                showarrow=False,
-                align="right",
-                font=dict(family="Arial, sans-serif", size=14, color="#111111"),
-                bgcolor="rgba(255, 255, 255, 0)",
-                bordercolor="#111111",
-                borderwidth=1,
-                borderpad=6
+            # INTEGRATION DU LOGO DEPUIS TON LIEN RAW GITHUB (.jpg pris en compte)
+            fig.add_layout_image(
+                dict(
+                    source="https://raw.githubusercontent.com/ton-pseudo/ton-depot/main/assets/Logo%20maulini%20.jpg",
+                    xref="paper", yref="paper",
+                    x=1, y=1.40,  # Positionné précisément en haut à droite
+                    sizex=0.18, sizey=0.18,  # Ajuste ces valeurs au besoin selon les proportions de l'image
+                    xanchor="right", yanchor="bottom"
+                )
             )
             
             st.plotly_chart(
